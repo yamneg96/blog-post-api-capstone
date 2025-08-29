@@ -35,11 +35,11 @@ To get started with this project, follow these steps:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/yamneg96/django-rest-api.git
+   git clone https://github.com/yamneg96/ALX_CAPSTONE.git
 
 ## Navigate into the Directory:
 
-cd django-rest-api
+cd ALX_CAPSTONE
 
 ## Install Dependencies:
 
