@@ -35,11 +35,11 @@ To get started with this project, follow these steps:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/yamneg96/ALX_CAPSTONE.git
+   git clone https://github.com/yamneg96/blog-post-api-capstone.git
 
 ## Navigate into the Directory:
 
-cd ALX_CAPSTONE
+cd blog-post-api-capstone
 
 ## Install Dependencies:
 
