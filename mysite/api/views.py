@@ -48,9 +48,17 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Ensure the author is always set to the currently authenticated user.
+        Assign the currently authenticated user as the author.
+        If no user is authenticated, use a default user (first user in DB).
         """
-        serializer.save(author=self.request.user)
+        user = self.request.user
+        if user.is_anonymous:
+            # Get the first user in the database as default (ensure at least one user exists)
+            user = User.objects.first()
+            if not user:
+                # If no user exists, raise an error
+                raise ValueError("No users exist in the database. Create a user first.")
+        serializer.save(author=user)
 
     @action(detail=False, methods=["get"], url_path="by-author/(?P<username>[^/.]+)")
     def by_author(self, request, username=None):
