@@ -17,3 +17,7 @@ urlpatterns = [
 # This create a file that will specify what migrations need to be applied.
 # 2. Apply the migration : python manage.py migrate
 # This will apply the migrations.
+
+
+# The Docker file specifies how we run our application and 
+# The Acorn file all of the services and additional configurations we need.
