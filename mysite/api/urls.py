@@ -4,5 +4,12 @@ from . import views
 urlpatterns = [
     path('blogposts/', 
     views.BlogPostListCreate.as_view(), 
-    name='blogpost-list-create'),
+    name='blogpost-view-create'),
 ]
+
+
+# Before running the server, We : (anytime we touch the model(create or update))
+# 1. Create a migration : python manage.py makemigrations
+# This create a file that will specify what migrations need to be applied.
+# 2. Apply the migration : python manage.py migrate
+# This will apply the migrations.

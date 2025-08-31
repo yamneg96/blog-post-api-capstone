@@ -6,4 +6,5 @@ class BlogPostSerializer(serializers.ModelSerializer):
   class Meta:
     model = BlogPost
     flields = ['id', 'title', 'content', 'published_date']
-    
+    read_only_fields = ['id', 'published_date']
+    exclude = []
