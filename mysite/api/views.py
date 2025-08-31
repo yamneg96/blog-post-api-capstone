@@ -1,36 +1,73 @@
-from django.shortcuts import render
-from rest_framework import generics, status
+from rest_framework import viewsets, permissions, filters, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import BlogPost
-from .serializers import BlogPostSerializer
+from django.contrib.auth import get_user_model
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Post, Category, Tag
+from .serializers import PostSerializer, CategorySerializer, TagSerializer, UserSerializer
+from .permissions import IsAuthorOrReadOnly
 
+User = get_user_model()
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class BlogPostListCreate(generics.ListCreateAPIView):
-  queryset = BlogPost.objects.all() #Getting all the blog post models.
-  serializer_class = BlogPostSerializer #Specifying the serializer class to convert the model instances to JSON.
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    lookup_field = "slug"
 
-  def delete(self, request, *args, **kwargs):
-    BlogPost.objects.all().delete() # Delete all blog posts
-    return Response(status=status.HTTP_204_NO_CONTENT)
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    lookup_field = "slug"
 
-class BlogPostRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-  queryset = BlogPost.objects.all()
-  serializer_class = BlogPostSerializer
-  lookup_field = 'pk' #Specifying the field to look up the instance.
-# We use the django rest_framework views to use the generics.
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.select_related("author", "category").prefetch_related("tags").all()
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthorOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        "category__slug": ["exact"],
+        "author__username": ["exact"],
+        "is_published": ["exact"],
+        "published_date": ["gte", "lte"],
+        "tags__slug": ["exact"],
+    }
+    search_fields = ["title", "content", "tags__name", "author__username"]
+    ordering_fields = ["published_date", "created_at", "category__name"]
+    ordering = ["-published_date", "-created_at"]
 
+    def perform_create(self, serializer):
+        # ensure the author is the currently authenticated user
+        user = self.request.user
+        # If not authenticated, serializer's author field must be provided (but permission will block writes)
+        if user and user.is_authenticated:
+            serializer.save(author=user)
+        else:
+            # allow creating with author field if provided (for admin/testing)
+            serializer.save()
 
-# A custome API would be like this : (if we don't want to inherit the generic ones.)
-# and import like : from rest_framework.views import APIView
-# Then : 
-# class BlogPostList(APIView):
-#   def get(self, request, format=None):
-#     title = request.query_params.get('title', '')
-      
-#     if title: 
-#       blog_posts = BlogPost.objects.filter(title__icontains=title)
-#     else:
-#       blog_posts = BlogPost.objects.all()
-#     serializer = BlogPostSerializer(blog_posts, many=True)
-#     return Response(serializer.data, status=status.HTTP_200_OK)
+    @action(detail=False, methods=["get"], url_path="by-author/(?P<username>[^/.]+)")
+    def by_author(self, request, username=None):
+        qs = self.filter_queryset(self.get_queryset().filter(author__username=username))
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="by-category/(?P<slug>[^/.]+)")
+    def by_category(self, request, slug=None):
+        qs = self.filter_queryset(self.get_queryset().filter(category__slug=slug))
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
