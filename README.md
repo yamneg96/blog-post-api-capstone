@@ -50,6 +50,7 @@ pip install -r requirements.txt
 python manage.py runserver
 
 * Your API should now be up and running! 🎊
+* Now navigate to the url segments seen on the homepage to use the functionalities.
 
 🤝 Contributing
 Feel free to contribute to this project by submitting pull requests or reporting issues. Together, we can make it even better! 💪

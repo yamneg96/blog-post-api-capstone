@@ -9,10 +9,12 @@ from .permissions import IsAuthorOrReadOnly
 
 User = get_user_model()
 
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -20,11 +22,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = "slug"
 
+
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = "slug"
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.select_related("author", "category").prefetch_related("tags").all()
@@ -43,14 +47,10 @@ class PostViewSet(viewsets.ModelViewSet):
     ordering = ["-published_date", "-created_at"]
 
     def perform_create(self, serializer):
-        # ensure the author is the currently authenticated user
-        user = self.request.user
-        # If not authenticated, serializer's author field must be provided (but permission will block writes)
-        if user and user.is_authenticated:
-            serializer.save(author=user)
-        else:
-            # allow creating with author field if provided (for admin/testing)
-            serializer.save()
+        """
+        Ensure the author is always set to the currently authenticated user.
+        """
+        serializer.save(author=self.request.user)
 
     @action(detail=False, methods=["get"], url_path="by-author/(?P<username>[^/.]+)")
     def by_author(self, request, username=None):

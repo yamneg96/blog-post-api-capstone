@@ -4,6 +4,7 @@ from .models import Post, Category, Tag
 
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
 
@@ -19,11 +20,13 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ("id", "name", "slug")
         read_only_fields = ("id", "slug")
+
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,15 +34,29 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "slug")
         read_only_fields = ("id", "slug")
 
+
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(slug_field="username", queryset=User.objects.all())
+    # Author is read-only: always set by the backend (request.user)
+    author = serializers.StringRelatedField(read_only=True)
     category = CategorySerializer(required=False, allow_null=True)
     tags = TagSerializer(many=True, required=False)
 
     class Meta:
         model = Post
-        fields = ("id", "title", "slug", "content", "author", "category", "tags", "published_date", "is_published", "created_at", "updated_at")
-        read_only_fields = ("id", "slug", "created_at", "updated_at")
+        fields = (
+            "id",
+            "title",
+            "slug",
+            "content",
+            "author",
+            "category",
+            "tags",
+            "published_date",
+            "is_published",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "slug", "created_at", "updated_at", "author")
 
     def create_or_get_category(self, category_data):
         if not category_data:
@@ -57,10 +74,9 @@ class PostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         category_data = validated_data.pop("category", None)
         tags_data = validated_data.pop("tags", None)
-        author = validated_data.pop("author")
 
         category = self.create_or_get_category(category_data)
-        post = Post.objects.create(author=author, category=category, **validated_data)
+        post = Post.objects.create(category=category, **validated_data)
 
         tag_objs = self.create_or_get_tags(tags_data)
         if tag_objs:
